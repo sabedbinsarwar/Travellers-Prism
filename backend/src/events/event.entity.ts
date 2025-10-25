@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+  CreateDateColumn,
+} from 'typeorm';
 import { User } from '../users/user.entity';
 
 @Entity()
@@ -9,24 +17,22 @@ export class Event {
   @Column()
   title: string;
 
-  @Column('text')
+  @Column()
   description: string;
 
   @Column()
   location: string;
 
-  @Column('timestamp')
-  date: Date;
+  @Column()
+  date: Date; // user-selected event date
 
-  @ManyToOne(() => User, { eager: true })
+  @CreateDateColumn() // auto upload timestamp
+  createdAt: Date;
+
+  @ManyToOne(() => User, (user) => user.createdEvents)
   creator: User;
 
-  @Column('simple-array', { nullable: true })
-  participants: number[]; // user ids
-
-  @Column('simple-array', { nullable: true })
-  images: string[];
-
-  @CreateDateColumn()
-  createdAt: Date;
+  @ManyToMany(() => User, (user) => user.joinedEvents, { eager: false })
+  @JoinTable()
+  participants: User[];
 }

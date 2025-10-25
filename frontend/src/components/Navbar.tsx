@@ -7,14 +7,12 @@ import { Menu, X } from "lucide-react";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      setUser(null);
-    }
+    if (storedUser) setUser(JSON.parse(storedUser));
+    setMounted(true);
   }, []);
 
   const handleLogout = () => {
@@ -23,6 +21,10 @@ export default function Navbar() {
     setUser(null);
     window.location.href = "/login";
   };
+
+  if (!mounted) return null;
+
+  const glowButton = "transition transform hover:scale-105 shadow-lg";
 
   return (
     <nav className="bg-transparent text-white fixed w-full top-0 left-0 z-50 font-sans">
@@ -41,13 +43,13 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
-                className="px-6 py-2 rounded-full bg-green-600 text-white hover:bg-green-400 transition transform hover:scale-105 shadow-md font-sans"
+                className={`${glowButton} px-6 py-2 rounded-full bg-green-600 text-white shadow-green-700/80`}
               >
                 Login
               </Link>
               <Link
                 href="/signup"
-                className="px-6 py-2 rounded-full bg-gradient-to-r from-gray-300 to-gray-300 text-gray-700 font-semibold hover:from-gray-400 hover:to-gray-500 transition transform hover:scale-105 shadow-md font-sans"
+                className={`${glowButton} px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold shadow-gray-700/80`}
               >
                 Signup
               </Link>
@@ -57,19 +59,13 @@ export default function Navbar() {
             <>
               <Link
                 href="/dashboard"
-                className="px-6 py-2 rounded-full bg-green-600 text-white hover:bg-green-400 transition transform hover:scale-105 shadow-md font-sans"
+                className={`${glowButton} px-6 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-700/90`}
               >
-                Travel feed
-              </Link>
-              <Link
-                href={`/profile/${user.id}`}
-                className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-400 transition transform hover:scale-105 shadow-md font-sans"
-              >
-                Profile
+                Travel Feed
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-6 py-2 rounded-full bg-red-500 hover:bg-red-600 shadow-md text-white font-semibold transition transform hover:scale-105 font-sans"
+                className={`${glowButton} px-6 py-2 rounded-full bg-red-500 text-white font-semibold shadow-red-700/90`}
               >
                 Logout
               </button>
@@ -94,14 +90,14 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-400 transition shadow-md font-sans"
+                className={`${glowButton} w-full text-center px-6 py-2 rounded-full bg-green-500 text-white shadow-green-500/80`}
               >
                 Login
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setMenuOpen(false)}
-                className="px-6 py-2 rounded-full bg-gradient-to-r from-gray-300 to-gray-400 text-gray-900 font-semibold hover:from-gray-400 hover:to-gray-500 transition shadow-md font-sans"
+                className={`${glowButton} w-full text-center px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold shadow-gray-400/80`}
               >
                 Signup
               </Link>
@@ -112,20 +108,13 @@ export default function Navbar() {
               <Link
                 href="/dashboard"
                 onClick={() => setMenuOpen(false)}
-                className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-400 transition shadow-md font-sans"
+                className={`${glowButton} w-full text-center px-6 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-400/90`}
               >
-                Dashboard
-              </Link>
-              <Link
-                href={`/profile/${user.id}`}
-                onClick={() => setMenuOpen(false)}
-                className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-400 transition shadow-md font-sans"
-              >
-                Profile
+                Travel Feed
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-6 py-2 rounded-full bg-red-500 hover:bg-red-600 shadow-md text-white font-semibold transition font-sans"
+                className={`${glowButton} w-full text-center px-6 py-2 rounded-full bg-red-500 text-white font-semibold shadow-red-500/90`}
               >
                 Logout
               </button>

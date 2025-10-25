@@ -1,20 +1,18 @@
-import { Controller, Post as HttpPost, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post as NestPost, Body, Get, Param } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Controller('comments')
 export class CommentsController {
   constructor(private commentsService: CommentsService) {}
 
-  @HttpPost()
-  async create(@Body() dto: CreateCommentDto) {
-    return this.commentsService.create(dto);
+  @NestPost()
+  async create(@Body() body: any) {
+    const { userId, postId, content } = body;
+    return this.commentsService.create(parseInt(userId), parseInt(postId), content);
   }
 
-  @Get()
-  async list(@Query('postId') postId: string, @Query('eventId') eventId: string) {
-    if (postId) return this.commentsService.findByPost(parseInt(postId));
-    if (eventId) return this.commentsService.findByEvent(parseInt(eventId));
-    return [];
+  @Get('post/:postId')
+  async forPost(@Param('postId') postId: string) {
+    return this.commentsService.findByPostId(parseInt(postId));
   }
 }

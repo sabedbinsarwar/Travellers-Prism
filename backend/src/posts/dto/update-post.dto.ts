@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsArray } from 'class-validator';
 
-export class CreatePostDto {
+export class UpdatePostDto {
   @IsOptional()
   @IsString()
   content?: string;
@@ -14,7 +14,4 @@ export class CreatePostDto {
   @IsArray()
   @IsString({ each: true })
   videos?: string[];
-
-  @IsString()
-  userId: string;
 }

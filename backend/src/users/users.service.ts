@@ -14,19 +14,19 @@ export class UsersService {
     return this.repo.save(user);
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<User | null> {
     return this.repo.findOne({ where: { email } });
   }
 
-  async findById(id: number) {
-    return this.repo.findOne({ where: { id } });
+  async findById(id: number): Promise<User | null> {
+    return this.repo.findOne({ where: { id } }); // add relations if needed later
   }
 
-  async findAll() {
+  async findAll(): Promise<User[]> {
     return this.repo.find();
   }
 
-  async updateUser(id: number, updateData: Partial<User>) {
+  async updateUser(id: number, updateData: Partial<User>): Promise<User | null> {
     if (!Object.keys(updateData).length) {
       throw new BadRequestException('No data provided to update');
     }

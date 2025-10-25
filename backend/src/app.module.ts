@@ -12,6 +12,8 @@ import { User } from './users/user.entity';
 import { Post } from './posts/post.entity';
 import { Event } from './events/event.entity';
 import { Comment } from './comments/comment.entity';
+import { LikesModule } from './likes/likes.module';
+import { Like } from './likes/like.entity';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { Comment } from './comments/comment.entity';
       username: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
-      entities: [User, Post, Event, Comment],
+      entities: [User, Post, Event, Comment,Like],
       synchronize: true // dev only
     }),
     UsersModule,
@@ -31,6 +33,7 @@ import { Comment } from './comments/comment.entity';
     PostsModule,
     EventsModule,
     CommentsModule,
+    LikesModule,
   ],
 })
 export class AppModule {}

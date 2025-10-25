@@ -7,17 +7,14 @@ export class Comment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, { eager: true })
-  user: User;
-
-  @Column({ nullable: true })
-  postId: number;
-
-  @Column({ nullable: true })
-  eventId: number;
-
   @Column('text')
   content: string;
+
+  @ManyToOne(() => User, (user) => user.comments, { eager: true, onDelete: 'CASCADE' })
+  user: User;
+
+  @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
+  post: Post;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,32 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Comment } from './comment.entity';
-import { CreateCommentDto } from './dto/create-comment.dto';
+import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
+import { PostsService } from '../posts/posts.service';
 
 @Injectable()
 export class CommentsService {
-  constructor(@InjectRepository(Comment) private repo: Repository<Comment>, private usersService: UsersService) {}
+  constructor(
+    @InjectRepository(Comment) private repo: Repository<Comment>,
+    private usersService: UsersService,
+    private postsService: PostsService,
+  ) {}
 
-  async create(dto: CreateCommentDto) {
-    const user = await this.usersService.findById(dto.userId);
-if (!user) throw new Error('User not found'); // or NestJS NotFoundException
+ async create(userId: number, postId: number, content: string) {
+  const user = await this.usersService.findById(userId);
+  const post = await this.postsService.findById(postId);
 
-    const comment = this.repo.create({
-      user,
-      postId: dto.postId,
-      eventId: dto.eventId,
-      content: dto.content,
+  if (!user || !post) return null;
+
+  const comment = this.repo.create({ content, user, post });
+  return this.repo.save(comment);
+}
+
+
+  async findByPostId(postId: number): Promise<Comment[]> {
+    return this.repo.find({
+      where: { post: { id: postId } },
+      relations: ["user"], // ✅ include user info for frontend (name, profilePic)
+      order: { createdAt: "ASC" },
     });
-    return this.repo.save(comment);
-  }
-
-  async findByPost(postId: number) {
-    return this.repo.find({ where: { postId }, order: { createdAt: 'ASC' } });
-  }
-
-  async findByEvent(eventId: number) {
-    return this.repo.find({ where: { eventId }, order: { createdAt: 'ASC' } });
   }
 }

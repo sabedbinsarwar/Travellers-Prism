@@ -1,5 +1,14 @@
-// user.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToMany,
+} from 'typeorm';
+import { Post } from '../posts/post.entity';
+import { Comment } from '../comments/comment.entity';
+import { Like } from '../likes/like.entity';
+import { Event } from '../events/event.entity'; // ✅ import this
 
 @Entity()
 export class User {
@@ -26,4 +35,20 @@ export class User {
 
   @Column({ nullable: true })
   coverPic: string;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
+
+  @OneToMany(() => Like, (like) => like.user)
+  likes: Like[];
+
+  // ✅ add these relations for events
+  @OneToMany(() => Event, (event) => event.creator)
+  createdEvents: Event[];
+
+  @ManyToMany(() => Event, (event) => event.participants)
+  joinedEvents: Event[];
 }
