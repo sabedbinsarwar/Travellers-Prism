@@ -159,19 +159,21 @@ export default function DashboardPage() {
   };
 
   // File selectors
-  const onSelectImages = (files: FileList | null) => {
-    if (!files) return;
-    const arr = Array.from(files);
-    setPostImages(arr);
-    setPostImagesPreview(arr.map((f) => URL.createObjectURL(f)));
-  };
+  // Append new images instead of replacing
+const onSelectImages = (files: FileList | null) => {
+  if (!files) return;
+  const newFiles = Array.from(files);
+  setPostImages((prev) => [...prev, ...newFiles]);
+  setPostImagesPreview((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
+};
 
-  const onSelectVideos = (files: FileList | null) => {
-    if (!files) return;
-    const arr = Array.from(files);
-    setPostVideos(arr);
-    setPostVideosPreview(arr.map((f) => URL.createObjectURL(f)));
-  };
+// Append new videos instead of replacing
+const onSelectVideos = (files: FileList | null) => {
+  if (!files) return;
+  const newFiles = Array.from(files);
+  setPostVideos((prev) => [...prev, ...newFiles]);
+  setPostVideosPreview((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
+};
 
   // Sidebar/Nav Links
   const NavLinks = () => (
@@ -274,27 +276,37 @@ export default function DashboardPage() {
               onChange={(e) => setNewPost(e.target.value)}
               rows={3}
             />
-            <div className="flex items-center flex-wrap gap-3 mt-3">
-              <label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
-                <Image size={16} className="mr-2" /> Photos
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  multiple
-                  onChange={(e) => onSelectImages(e.target.files)}
-                />
-              </label>
-              <label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
-                <Video size={16} className="mr-2" /> Videos
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  multiple
-                  onChange={(e) => onSelectVideos(e.target.files)}
-                />
-              </label>
+<div className="flex items-center flex-wrap gap-3 mt-3">
+<label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
+  <Image size={16} className="mr-2" /> Photos
+  <input
+    type="file"
+    accept="image/*"
+    className="hidden"
+    multiple
+    onChange={(e) => {
+      onSelectImages(e.target.files);
+      e.target.value = ""; // Reset so the same file can be selected again
+    }}
+  />
+</label>
+
+<label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
+  <Video size={16} className="mr-2" /> Videos
+  <input
+    type="file"
+    accept="video/*"
+    className="hidden"
+    multiple
+    onChange={(e) => {
+      onSelectVideos(e.target.files);
+      e.target.value = "";
+    }}
+  />
+</label>
+
+
+
               <button
                 onClick={handleCreatePost}
                 disabled={!newPost.trim() && postImages.length === 0 && postVideos.length === 0}
@@ -305,25 +317,49 @@ export default function DashboardPage() {
             </div>
 
             {(postImagesPreview.length > 0 || postVideosPreview.length > 0) && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {postImagesPreview.map((src, idx) => (
-                  <img
-                    key={`img-${idx}`}
-                    src={src}
-                    className="w-full rounded-lg max-h-80 object-cover border border-gray-700 hover:scale-[1.02] transition-transform"
-                  />
-                ))}
-                {postVideosPreview.map((src, idx) => (
-                  <video
-                    key={`vid-${idx}`}
-                    controls
-                    className="w-full rounded-lg max-h-[420px] border border-gray-700 hover:scale-[1.02] transition-transform"
-                  >
-                    <source src={src} />
-                  </video>
-                ))}
-              </div>
-            )}
+  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+    {postImagesPreview.map((src, idx) => (
+      <div key={`img-${idx}`} className="relative group rounded overflow-hidden">
+        <img
+          src={src}
+          className="w-full rounded-lg max-h-80 object-cover border border-gray-700 hover:scale-[1.02] transition-transform"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setPostImages((prev) => prev.filter((_, i) => i !== idx));
+            setPostImagesPreview((prev) => prev.filter((_, i) => i !== idx));
+          }}
+          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:scale-110 transition"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    ))}
+
+    {postVideosPreview.map((src, idx) => (
+      <div key={`vid-${idx}`} className="relative group rounded overflow-hidden">
+        <video
+          controls
+          className="w-full rounded-lg max-h-[420px] border border-gray-700 hover:scale-[1.02] transition-transform"
+        >
+          <source src={src} />
+        </video>
+        <button
+          type="button"
+          onClick={() => {
+            setPostVideos((prev) => prev.filter((_, i) => i !== idx));
+            setPostVideosPreview((prev) => prev.filter((_, i) => i !== idx));
+          }}
+          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:scale-110 transition"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
           </section>
         )}
 
@@ -367,31 +403,46 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Feed */}
-        <section className="space-y-5">
-          {feed.length === 0 ? (
-            <div className="text-gray-500 text-center italic py-10">
-              {view === "feed" ? "No stories or events yet 🌍" : "No events yet 🗓️"}
-            </div>
-          ) : (
-            feed.map((item) =>
-              item.type === "post" ? (
-                <PostCard key={`post-${item.id}`} post={item} currentUserId={String(userId)} />
-              ) : (
-                <EventCard
-  key={`event-${item.id}`}
-  event={item}
-  currentUserId={userId}
-  onUpdate={(updated) => {
-    setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-  }}
-  onDelete={(id) => setEvents((prev) => prev.filter((e) => e.id !== id))}
-/>
+ {/* Feed */}
+<section className="space-y-5">
+  {feed.length === 0 ? (
+    <div className="text-gray-500 text-center italic py-10">
+      {view === "feed" ? "No stories or events yet 🌍" : "No events yet 🗓️"}
+    </div>
+  ) : (
+    feed.map((item) =>
+      item.type === "post" ? (
+        <PostCard
+          key={`post-${item.id}`}
+          post={item}
+          currentUserId={String(userId)}
+          onDelete={(id) => {
+            // Remove from posts state
+            setPosts((prev) => prev.filter((p) => p.id !== id));
+          }}
+          onUpdate={(updated) => {
+            setPosts((prev) =>
+              prev.map((p) => (p.id === updated.id ? updated : p))
+            );
+          }}
+        />
+      ) : (
+        <EventCard
+          key={`event-${item.id}`}
+          event={item}
+          currentUserId={userId}
+          onUpdate={(updated) => {
+            setEvents((prev) =>
+              prev.map((e) => (e.id === updated.id ? updated : e))
+            );
+          }}
+          onDelete={(id) => setEvents((prev) => prev.filter((e) => e.id !== id))}
+        />
+      )
+    )
+  )}
+</section>
 
-              )
-            )
-          )}
-        </section>
       </main>
     </div>
   );

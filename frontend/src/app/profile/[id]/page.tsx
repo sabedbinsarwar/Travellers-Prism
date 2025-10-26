@@ -1,4 +1,6 @@
 "use client";
+import { X } from "lucide-react";
+
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -170,19 +172,26 @@ export default function ProfilePage() {
     try {
       await api.delete(`/events/${id}`, { params: { userId: currentUserId } });
       setEvents((prev) => prev.filter((e) => e.id !== id));
-      alert("Event deleted successfully ✅");
+      
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to delete event.");
     }
   };
 
-  const onSelectImages = (files: FileList | null) => {
-    if (!files) return;
-    const arr = Array.from(files);
-    setPostImages(arr);
-    setPostImagesPreview(arr.map((f) => URL.createObjectURL(f)));
-  };
+const onSelectImages = (files: FileList | null, inputElement?: HTMLInputElement) => {
+  if (!files) return;
+  const newFiles = Array.from(files);
+
+  // Append new files to previous ones
+  setPostImages((prev) => [...prev, ...newFiles]);
+  setPostImagesPreview((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
+
+  // Reset input to allow selecting the same file again
+  if (inputElement) inputElement.value = "";
+};
+
+
 
   const onSelectVideos = (files: FileList | null) => {
     if (!files) return;
@@ -313,16 +322,50 @@ export default function ProfilePage() {
     onChange={(e) => setNewPost(e.target.value)}
     rows={3}
   />
-  <div className="flex items-center flex-wrap gap-3 mt-3">
-    <label className="flex items-center px-5 py-2 bg-gray-800/70 rounded-xl hover:bg-emerald-700/50 cursor-pointer transition-all text-sm font-medium shadow-md hover:shadow-emerald-500/40">
-      <Image size={16} className="mr-2" /> Photos
-      <input type="file" accept="image/*" className="hidden" multiple onChange={(e) => onSelectImages(e.target.files)} />
-    </label>
+ <div className="flex items-center flex-wrap gap-3 mt-3">
+  <label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
+  <Image size={16} className="mr-2" /> Photos
+  <input
+    type="file"
+    accept="image/*"
+    className="hidden"
+    multiple
+    onChange={(e) => {
+      const files = e.target.files;
+      if (!files) return;
+      const newFiles = Array.from(files);
 
-    <label className="flex items-center px-5 py-2 bg-gray-800/70 rounded-xl hover:bg-emerald-700/50 cursor-pointer transition-all text-sm font-medium shadow-md hover:shadow-emerald-500/40">
-      <Video size={16} className="mr-2" /> Videos
-      <input type="file" accept="video/*" className="hidden" multiple onChange={(e) => onSelectVideos(e.target.files)} />
-    </label>
+      // Append new files to previous ones
+      setPostImages((prev) => [...prev, ...newFiles]);
+      setPostImagesPreview((prev) => [
+        ...prev,
+        ...newFiles.map((f) => URL.createObjectURL(f)),
+      ]);
+
+      // Reset input so same file can be selected again
+      e.target.value = "";
+    }}
+  />
+</label>
+
+
+  <label className="flex items-center px-4 py-2 bg-gray-800/80 rounded-lg hover:bg-emerald-600/30 cursor-pointer transition-all text-sm font-medium">
+    <Video size={16} className="mr-2" /> Videos
+    <input
+      type="file"
+      accept="video/*"
+      className="hidden"
+      multiple
+      onChange={(e) => {
+        onSelectVideos(e.target.files);
+        e.target.value = ""; // Reset
+      }}
+    />
+  </label>
+
+
+
+
 
     <button
       onClick={handleCreatePost}
@@ -335,14 +378,51 @@ export default function ProfilePage() {
 
   {(postImagesPreview.length > 0 || postVideosPreview.length > 0) && (
     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-      {postImagesPreview.map((src, idx) => (
-        <img key={`img-${idx}`} src={src} className="w-full rounded-xl max-h-80 object-cover border border-gray-700 shadow-md hover:scale-105 transition-transform" alt={`Preview ${idx + 1}`} />
-      ))}
-      {postVideosPreview.map((src, idx) => (
-        <video key={`vid-${idx}`} controls className="w-full rounded-xl max-h-[420px] border border-gray-700 shadow-md hover:scale-105 transition-transform">
+      {(postImagesPreview.length > 0 || postVideosPreview.length > 0) && (
+  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+    {postImagesPreview.map((src, idx) => (
+      <div key={`img-${idx}`} className="relative group rounded overflow-hidden">
+        <img
+          src={src}
+          className="w-full rounded-xl max-h-80 object-cover border border-gray-700 shadow-md hover:scale-105 transition-transform"
+          alt={`Preview ${idx + 1}`}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setPostImages((prev) => prev.filter((_, i) => i !== idx));
+            setPostImagesPreview((prev) => prev.filter((_, i) => i !== idx));
+          }}
+          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:scale-110 transition"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    ))}
+
+    {postVideosPreview.map((src, idx) => (
+      <div key={`vid-${idx}`} className="relative group rounded overflow-hidden">
+        <video
+          controls
+          className="w-full rounded-xl max-h-[420px] border border-gray-700 shadow-md hover:scale-105 transition-transform"
+        >
           <source src={src} />
         </video>
-      ))}
+        <button
+          type="button"
+          onClick={() => {
+            setPostVideos((prev) => prev.filter((_, i) => i !== idx));
+            setPostVideosPreview((prev) => prev.filter((_, i) => i !== idx));
+          }}
+          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:scale-110 transition"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
     </div>
   )}
 </div>

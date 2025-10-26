@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, MapPin, Users, MoreVertical, Trash2, Edit2, X } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  MoreVertical,
+  Trash2,
+  Edit2,
+  X,
+  Check,
+  Clock,
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import api from "../utils/axiosInstance";
 import CommentsSection from "./CommentsSection";
 
@@ -28,16 +40,33 @@ interface EventProps {
   onDelete?: (id: number) => void;
 }
 
-export default function EventCard({ event, currentUserId, onUpdate, onDelete }: EventProps) {
+export default function EventCard({
+  event,
+  currentUserId,
+  onUpdate,
+  onDelete,
+}: EventProps) {
   const [joined, setJoined] = useState(false);
-  const [participantCount, setParticipantCount] = useState<number>(event.participants?.length || 0);
+  const [participantCount, setParticipantCount] = useState<number>(
+    event.participants?.length || 0
+  );
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: event.title,
+    description: event.description,
+    location: event.location,
+    date: new Date(event.date),
+  });
 
   useEffect(() => {
     if (!event.participants) return;
     try {
-      const me = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      const me =
+        typeof window !== "undefined" ? localStorage.getItem("user") : null;
       const uid = me ? JSON.parse(me).id : null;
       setJoined(!!uid && event.participants.some((p) => p.id === uid));
     } catch {
@@ -47,7 +76,8 @@ export default function EventCard({ event, currentUserId, onUpdate, onDelete }: 
   }, [event]);
 
   const handleJoin = async () => {
-    const me = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const me =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (!me) return alert("Please login to join events.");
     const uid = JSON.parse(me).id;
 
@@ -66,52 +96,53 @@ export default function EventCard({ event, currentUserId, onUpdate, onDelete }: 
     }
   };
 
-const handleDelete = async () => {
-  if (!onDelete) return;
-  if (!confirm("Are you sure you want to delete this event?")) return;
-
-  try {
-    await api.delete(`/events/${event.id}?userId=${event.creator.id}`);
-    onDelete(event.id); // update parent state
-    setMenuOpen(false);
-  } catch (err) {
-    console.error("Failed to delete event", err);
-    alert("Failed to delete event.");
-  }
-};
-
-
-  const handleEdit = async () => {
-    const newTitle = prompt("Edit Title", event.title);
-    const newDescription = prompt("Edit Description", event.description);
-    const newLocation = prompt("Edit Location", event.location);
-    const newDate = prompt("Edit Date (YYYY-MM-DDTHH:MM)", event.date);
-
-    if (!newTitle || !newDate) return;
-
+  const confirmDelete = async () => {
+    if (!onDelete) return;
     try {
-      const res = await api.put(`/events/${event.id}?userId=${event.creator.id}`, {
-        title: newTitle,
-        description: newDescription,
-        location: newLocation,
-        date: newDate,
-      });
-      onUpdate && onUpdate(res.data);
+      await api.delete(`/events/${event.id}?userId=${event.creator.id}`);
+      onDelete(event.id);
       setMenuOpen(false);
+      setShowDeleteConfirm(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 2500);
+    } catch (err) {
+      console.error("Failed to delete event", err);
+      alert("Failed to delete event.");
+    }
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing(true);
+    setMenuOpen(false);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const res = await api.put(
+        `/events/${event.id}?userId=${event.creator.id}`,
+        {
+          ...formData,
+          date: formData.date.toISOString(),
+        }
+      );
+      onUpdate && onUpdate(res.data);
+      setIsEditing(false);
     } catch (err) {
       console.error(err);
       alert("Failed to update event.");
     }
   };
 
-  const eventDateText = event.date ? event.date.replace("T", " ") : "TBA";
-
-  const maxAvatars = 5;
-  const extraCount = event.participants ? event.participants.length - maxAvatars : 0;
+  const eventDateText = event.date
+    ? new Date(event.date).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "TBA";
 
   return (
     <>
-      <div className="bg-gray-800 p-4 rounded-xl shadow-md border border-gray-700 hover:border-emerald-600 transition relative">
+      <div className="bg-gray-800 p-4 rounded-xl shadow-md border border-gray-700 hover:border-emerald-600 transition relative overflow-hidden">
         {/* Top Row: Creator + Actions */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
@@ -142,13 +173,13 @@ const handleDelete = async () => {
               {menuOpen && (
                 <div className="absolute right-0 mt-1 w-32 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
                   <button
-                    onClick={handleEdit}
+                    onClick={handleEditToggle}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-yellow-400 hover:bg-gray-800 rounded-md transition"
                   >
                     <Edit2 size={14} /> Edit
                   </button>
                   <button
-                    onClick={handleDelete}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-gray-800 rounded-md transition"
                   >
                     <Trash2 size={14} /> Delete
@@ -159,108 +190,171 @@ const handleDelete = async () => {
           )}
         </div>
 
-        {/* Event Date */}
-        <div className="text-emerald-400 text-sm font-semibold mb-1">
-          Scheduled for: {eventDateText}
-        </div>
+        {/* Editable or static content */}
+        {isEditing ? (
+          <div className="space-y-3 mt-2">
+            <input
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full p-2 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+              placeholder="Event Title"
+            />
+            <textarea
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+              placeholder="Description"
+            />
+            <input
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="w-full p-2 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+              placeholder="Location"
+            />
 
-        {/* Title + Info */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
-          <div className="flex flex-wrap gap-3 text-gray-300 text-sm items-center">
-            {event.location && (
-              <span className="flex items-center gap-1">
-                <MapPin size={14} /> {event.location}
-              </span>
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock size={18} className="text-emerald-400" />
+                <label className="text-gray-300 text-sm font-medium">
+                  Select Date & Time
+                </label>
+              </div>
+              <DatePicker
+                selected={formData.date}
+                onChange={(date: Date | null) => {
+                  if (date) setFormData({ ...formData, date });
+                }}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                dateFormat="MMMM d, yyyy h:mm aa"
+                placeholderText="Pick a date and time"
+                className="w-full p-2 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                popperClassName="z-50"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-3">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition"
+              >
+                <X size={16} /> Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition"
+              >
+                <Check size={16} /> Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="text-emerald-400 text-sm font-semibold mb-1">
+              Scheduled for: {eventDateText}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
+              <div className="flex flex-wrap gap-3 text-gray-300 text-sm items-center">
+                {event.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={14} /> {event.location}
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Users size={14} /> {participantCount} joined
+                </span>
+              </div>
+            </div>
+
+            {event.description && (
+              <p className="text-gray-300 text-sm mt-2 whitespace-pre-wrap">
+                {event.description}
+              </p>
             )}
-            <span className="flex items-center gap-1">
-              <Users size={14} /> {participantCount} joined
-            </span>
+          </>
+        )}
+
+        {!isEditing && (
+          <div className="flex items-center justify-between mt-3">
+            <button
+              onClick={handleJoin}
+              disabled={joined}
+              className={`px-4 py-1.5 rounded-lg font-semibold text-sm transition ${
+                joined
+                  ? "bg-gray-600 cursor-not-allowed text-gray-300"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              {joined ? "Joined ✅" : "Join Event"}
+            </button>
+            <CommentsSection postId={event.id} />
+          </div>
+        )}
+      </div>
+
+      {/* 🟢 Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-700 p-6 max-w-sm text-center">
+            <Trash2 size={36} className="text-red-500 mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-white mb-2">
+              Delete this event?
+            </h2>
+            <p className="text-gray-400 text-sm mb-5">
+              This action cannot be undone. Are you sure you want to continue?
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Participants avatars */}
-        {event.participants && event.participants.length > 0 && (
-         // Inside EventCard component, replace the avatars row with this:
+    
 
-<div className="flex items-center mt-2 gap-2">
-  {event.participants?.slice(0, 5).map((p) => (
-    <img
-      key={p.id}
-      src={p.profilePic || "/default-profile.png"}
-      alt={p.name}
-      className="w-8 h-8 rounded-full object-cover border-2 border-gray-700"
-      title={p.name} // simple hover tooltip
-    />
-  ))}
-
-  {event.participants && event.participants.length > 5 && (
-    <div
-      className="w-8 h-8 rounded-full bg-gray-700 text-xs flex items-center justify-center font-semibold cursor-pointer border-2 border-gray-700 relative"
-      onClick={() => setShowParticipantsModal(true)}
-    >
-      +{event.participants.length - 5}
-      <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-        {event.participants.slice(5).map((p) => p.name).join(", ")}
-      </div>
-    </div>
-  )}
-
-  {event.participants?.length > 0 && (
-    <button
-      onClick={() => setShowParticipantsModal(true)}
-      className="ml-2 text-gray-400 text-sm hover:underline"
-    >
-      View all
-    </button>
-  )}
-</div>
-
-        )}
-
-        {/* Description */}
-        {event.description && (
-          <p className="text-gray-300 text-sm mt-2 whitespace-pre-wrap">{event.description}</p>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between mt-3">
-          <button
-            onClick={handleJoin}
-            disabled={joined}
-            className={`px-4 py-1.5 rounded-lg font-semibold text-sm transition ${
-              joined ? "bg-gray-600 cursor-not-allowed text-gray-300" : "bg-emerald-600 hover:bg-emerald-700 text-white"
-            }`}
-          >
-            {joined ? "Joined ✅" : "Join Event"}
-          </button>
-          <CommentsSection postId={event.id} />
-        </div>
-      </div>
-
-      {/* Participants Modal */}
-      {showParticipantsModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 p-5 rounded-xl w-80 max-h-[80vh] overflow-y-auto relative">
-            <button
-              onClick={() => setShowParticipantsModal(false)}
-              className="absolute top-2 right-2 p-1 hover:bg-gray-800 rounded-full transition"
-            >
-              <X size={18} className="text-gray-300" />
-            </button>
-            <h3 className="text-white text-lg font-semibold mb-4">Participants</h3>
-            <ul className="space-y-3">
-              {event.participants?.map((p) => (
-                <li key={p.id} className="flex items-center gap-3">
-                  <img src={p.profilePic || "/default-profile.png"} alt={p.name} className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-white text-sm">{p.name}</span>
-                </li>
-              ))}
-                      </ul>
-        </div>
-      </div>
-    )}
-  </>
+      {/* Animation styles */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes slideUp {
+          from {
+            transform: translateY(30px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
+    </>
   );
 }
-
